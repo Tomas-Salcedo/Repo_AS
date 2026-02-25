@@ -11,10 +11,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
-
-	"github.com/rabbitmq/amqp091-go"
+	"time"
 )
 
 func Inicio(w http.ResponseWriter, r *http.Request) {
@@ -278,6 +276,7 @@ func Pedido(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func HacerPedido(w http.ResponseWriter, r *http.Request) {
+
 	var preciosFrutas = map[string]int{
 		"manzanas": 3,
 		"bananas":  2,
@@ -299,16 +298,14 @@ func HacerPedido(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calcular el total
+	// Calcular total
 	total := 0
 	for fruta, precio := range preciosFrutas {
 		cantidadStr := r.FormValue(fruta)
 		cantidad, err := strconv.Atoi(cantidadStr)
-
 		if err != nil || cantidad <= 0 {
 			continue
 		}
-
 		total += cantidad * precio
 	}
 
@@ -325,107 +322,52 @@ func HacerPedido(w http.ResponseWriter, r *http.Request) {
 		Estado:  1,
 	}
 
-	// 🚀 PUBLICAR EN RABBITMQ
-	err = publicarPedidoRabbit(pedido)
+	// 🔥 Enviar al otro microservicio por HTTP
+	err = enviarPedidoHTTP(pedido)
 	if err != nil {
-		log.Printf("❌ Error publicando pedido en RabbitMQ: %v", err)
-		session.Values["error"] = "Error al procesar el pedido"
+		log.Printf("❌ Error enviando pedido al microservicio: %v", err)
+
+		session.Values["error"] = "Error procesando el pedido"
 		session.Save(r, w)
 		http.Redirect(w, r, "/index/pedido", http.StatusSeeOther)
 		return
 	}
 
-	// ✅ Guardar mensaje de éxito en la sesión
 	session.Values["success"] = fmt.Sprintf("¡Pedido enviado exitosamente! Total: $%d", total)
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/index/pedido", http.StatusSeeOther)
 }
 
-// publicarPedidoRabbit publica el pedido en RabbitMQ
-func publicarPedidoRabbit(pedido model.Pedido) error {
-	// Obtener URL de RabbitMQ
-	rabbitmqURL := os.Getenv("RABBITMQ_URL")
-	if rabbitmqURL == "" {
-		rabbitmqURL = "amqp://admin:admin123@rabbitmq:5672/"
-	}
+func enviarPedidoHTTP(pedido model.Pedido) error {
 
-	// Conectar
-	conn, err := amqp091.Dial(rabbitmqURL)
+	url := "http://procesador:8085/pedidos"
+
+	jsonData, err := json.Marshal(pedido)
 	if err != nil {
-		return fmt.Errorf("error conectando a RabbitMQ: %v", err)
+		return fmt.Errorf("error convirtiendo pedido a JSON: %v", err)
 	}
-	defer conn.Close()
 
-	ch, err := conn.Channel()
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("error abriendo canal: %v", err)
+		return fmt.Errorf("error creando request: %v", err)
 	}
-	defer ch.Close()
 
-	// Declarar exchange
-	err = ch.ExchangeDeclare(
-		"pedidos-exchange",
-		"direct",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error declarando exchange: %v", err)
+		return fmt.Errorf("error enviando request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("microservicio respondió con status: %d", resp.StatusCode)
 	}
 
-	// Declarar cola quorum
-	_, err = ch.QueueDeclare(
-		"pedidos-queue",
-		true,
-		false,
-		false,
-		false,
-		amqp091.Table{
-			"x-queue-type": "quorum",
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("error declarando cola: %v", err)
-	}
-
-	// Bind
-	err = ch.QueueBind(
-		"pedidos-queue",
-		"pedido.nuevo",
-		"pedidos-exchange",
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("error en bind: %v", err)
-	}
-
-	// Convertir a JSON
-	body, err := json.Marshal(pedido)
-	if err != nil {
-		return fmt.Errorf("error marshaling pedido: %v", err)
-	}
-
-	// Publicar
-	err = ch.Publish(
-		"pedidos-exchange",
-		"pedido.nuevo",
-		false,
-		false,
-		amqp091.Publishing{
-			ContentType:  "application/json",
-			Body:         body,
-			DeliveryMode: amqp091.Persistent,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("error publicando mensaje: %v", err)
-	}
-
-	log.Printf("📤 Pedido publicado en RabbitMQ: %s", string(body))
 	return nil
 }
