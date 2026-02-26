@@ -1,4 +1,3 @@
-// rutas.go
 package rutas
 
 import (
@@ -13,7 +12,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/markbates/goth/gothic"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -1,27 +1,26 @@
 package main
 
-// 👈 Importa tu paquete handler
 import (
 	"log"
 	"net/http"
-	"pedido/handler" // 👈 Importa tu handler con la función Insertar
+	"pedido/conexion" // 👈 importa conexion
+	"pedido/handler"
 
 	"github.com/gorilla/mux"
-	// 👈 Importa tu modelo
 )
 
 func main() {
+	conexion.Conectar() // 👈 conecta una sola vez aquí
+	defer conexion.Cerrarconec()
 
-	mux := mux.NewRouter()
-
-	// Asigna la función Registro del paquete handler
-	mux.HandleFunc("/registro", handler.Registro).Methods("POST")
+	r := mux.NewRouter()
+	r.HandleFunc("/registro", handler.Registro).Methods("POST")
 
 	server := http.Server{
-		Addr:    "0.0.0.0:8083",
-		Handler: mux,
+		Addr:    ":8083", // 👈 así funciona en localhost
+		Handler: r,
 	}
 
-	log.Println("🚀 Frontend corriendo en http://0.0.0.0:8083")
+	log.Println("🚀 Servidor corriendo en http://localhost:8083")
 	log.Fatal(server.ListenAndServe())
 }

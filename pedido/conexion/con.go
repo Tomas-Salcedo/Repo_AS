@@ -1,29 +1,37 @@
 package conexion
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
+	"log"
+	"os"
 
-	_ "github.com/go-sql-driver/mysql" //si fuera postgres tendriamos que buscar el driver de postgres
+	"github.com/jackc/pgx/v4" // v4 funciona con Go 1.22
+	"github.com/joho/godotenv"
 )
 
-// funcion para conectarnos a la bbdd
-var Db *sql.DB //variable que almacena la llave para entrar a la bbdd al igual que para cerrar
+var Db *pgx.Conn
 
-func Conectar() { //usuario:contraseña@tcp(localhost:3306)/nombre bbdd || si fuera postgres ponemos al inicio postgres:// delante
-	conection, err := sql.Open("mysql", "dockeruser:password123@tcp(host.docker.internal:3306)/proyecto") //mysql es el driver que me permite viajar hacia la bbdd
-	//root: El nombre de usuario: No se especifica una contraseña (aunque es recomendable usar una contraseña)@tcp(localhost:3306): El protocolo tcp seguido de la dirección localhost y el puerto 3306 (puerto predeterminado de MySQL)/bbddgo: El nombre de la base de datos a la que deseas conectarte
+func Conectar() {
+	err := godotenv.Load()
 	if err != nil {
-		panic(err)
+		log.Fatal("Error loading .env file")
 	}
-	Db = conection
+
+	connStr := os.Getenv("DATABASE_URL")
+	conn, err := pgx.Connect(context.Background(), connStr)
+	if err != nil {
+		log.Fatalf("Error al conectar a la bbdd: %v", err)
+	}
+
+	Db = conn
+	fmt.Println("Conexión exitosa a Neon")
 }
 
-// cerrar coneccion bbdd
 func Cerrarconec() error {
-	err := Db.Close()
+	err := Db.Close(context.Background())
 	if err != nil {
-		return fmt.Errorf("error al cerrar la bbdd:%w", err)
+		return fmt.Errorf("error al cerrar la bbdd: %w", err)
 	}
 	return nil
 }

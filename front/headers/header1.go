@@ -47,7 +47,7 @@ func RegistroPost(w http.ResponseWriter, r *http.Request) {
 
 	jsonValue, _ := json.Marshal(datos)
 	cliente := &http.Client{}
-	req, _ := http.NewRequest("POST", "http://authentication-service:8081/autenticacion/registrar", bytes.NewBuffer(jsonValue))
+	req, _ := http.NewRequest("POST", "http://localhost:8081/autenticacion/registrar", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := cliente.Do(req)
@@ -105,7 +105,7 @@ func InicioSesionEnviar(w http.ResponseWriter, r *http.Request) {
 	jsonValue, _ := json.Marshal(datos)
 
 	cliente := &http.Client{}
-	req, _ := http.NewRequest("POST", "http://authentication-service:8081/autenticacion/iniciarSesion", bytes.NewBuffer(jsonValue))
+	req, _ := http.NewRequest("POST", "http://localhost:8081/autenticacion/iniciarSesion", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := cliente.Do(req)
@@ -187,7 +187,7 @@ func PerfilEditado(w http.ResponseWriter, r *http.Request) {
 
 	jsonValue, _ := json.Marshal(datos)
 	cliente := &http.Client{}
-	req, _ := http.NewRequest("PUT", "http://authentication-service:8081/autenticacion/EditarPerfil", bytes.NewBuffer(jsonValue))
+	req, _ := http.NewRequest("PUT", "http://localhost:8081/autenticacion/EditarPerfil", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := cliente.Do(req)
@@ -341,7 +341,7 @@ func HacerPedido(w http.ResponseWriter, r *http.Request) {
 
 func enviarPedidoHTTP(pedido model.Pedido) error {
 
-	url := "http://procesador:8085/pedidos"
+	url := "http://localhost:8083/registro"
 
 	jsonData, err := json.Marshal(pedido)
 	if err != nil {

@@ -1,7 +1,7 @@
-// main.go
 package main
 
 import (
+	"autenticacion/db" // 👈 agrega para conectar al arrancar
 	"autenticacion/rutas"
 	"log"
 	"net/http"
@@ -9,17 +9,22 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 )
 
 func main() {
-	// 🔹 Crear el proveedor de Google
+	godotenv.Load() // 👈 cargar .env antes de todo
+
+	db.Conectar() // 👈 conectar MongoDB una sola vez
+	defer db.Cerrar()
+
 	googleProvider := google.New(
 		os.Getenv("GOOGLE_CLIENT_ID"),
 		os.Getenv("GOOGLE_CLIENT_SECRET"),
-		"http://localhost:8081/autenticacion/google/callback",
+		"http://localhost:8081/autenticacion/google/callback", // ✅ ya está bien para local
 		"email",
 		"profile",
 	)
@@ -27,25 +32,23 @@ func main() {
 	googleProvider.SetPrompt("select_account")
 	goth.UseProviders(googleProvider)
 
-	gothic.Store = sessions.NewCookieStore([]byte("tu_secreto_super_secreto_aquí_cambialo_por_uno_random"))
+	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET"))) // 👈 mejor desde .env
 
-	mux := mux.NewRouter()
+	r := mux.NewRouter()
 
-	// IMPORTANTE: Las rutas específicas DEBEN ir ANTES de las rutas con parámetros
-	mux.HandleFunc("/autenticacion/registrar", rutas.Registrar).Methods("POST")
-	mux.HandleFunc("/autenticacion/iniciarSesion", rutas.LoginEnviado).Methods("POST")
-	mux.HandleFunc("/autenticacion/EditarPerfil", rutas.EditarPerfil).Methods("PUT") // MOVER AQUÍ
+	r.HandleFunc("/autenticacion/registrar", rutas.Registrar).Methods("POST")
+	r.HandleFunc("/autenticacion/iniciarSesion", rutas.LoginEnviado).Methods("POST")
+	r.HandleFunc("/autenticacion/EditarPerfil", rutas.EditarPerfil).Methods("PUT")
+	r.HandleFunc("/autenticacion/usuario/{username}", rutas.ObtenerUsuario).Methods("GET")
 
-	// 🔹 Endpoints para login con Google (DEBEN IR AL FINAL)
-	mux.HandleFunc("/autenticacion/{provider}", gothic.BeginAuthHandler)
-	mux.HandleFunc("/autenticacion/{provider}/callback", rutas.GoogleCallback)
+	r.HandleFunc("/autenticacion/{provider}", gothic.BeginAuthHandler)
+	r.HandleFunc("/autenticacion/{provider}/callback", rutas.GoogleCallback)
 
 	server := http.Server{
-		Addr:    "0.0.0.0:8081", // Escucha en todas las interfaces dentro del contenedor
-		Handler: mux,
+		Addr:    ":8081", // 👈 este es el único cambio real
+		Handler: r,
 	}
 
-	log.Println("Servidor de autenticación corriendo en http://0.0.0.0:8081")
-
+	log.Println("🚀 Servidor corriendo en http://localhost:8081")
 	log.Fatal(server.ListenAndServe())
 }

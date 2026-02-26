@@ -3,35 +3,47 @@ package db
 import (
 	"context"
 	"log"
-	"os" // Necesario para leer variables de entorno
+	"os"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 var (
-	// Lee la URL de la variable de entorno MONGO_DB_URL
-	mongoURL      = os.Getenv("MONGO_DB_URL")
-	clientOptions = options.Client().ApplyURI(mongoURL)
-	ClienteMongo  = conectarDB()
-	MongBD        = "proyecto" // El nombre de tu base de datos
-	Usuarios      = ClienteMongo.Database(MongBD).Collection("users")
+	ClienteMongo *mongo.Client
+	Usuarios     *mongo.Collection
 )
 
-func conectarDB() *mongo.Client {
-	// Verificar si se cargó la URL (por si acaso)
-	if mongoURL == "" {
-		log.Fatal("❌ ERROR: La variable de entorno MONGO_DB_URL no está configurada.")
+func Conectar() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error cargando .env")
 	}
 
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		log.Fatal(err)
+	mongoURL := os.Getenv("MONGO_DB_URL")
+	if mongoURL == "" {
+		log.Fatal("MONGO_DB_URL no está configurada")
 	}
-	err = client.Ping(context.TODO(), nil)
+
+	client, err := mongo.Connect(options.Client().ApplyURI(mongoURL)) // v2 no pide context en Connect
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error conectando: %v", err)
 	}
-	log.Println("✅ Conexión exitosa con la BD")
-	return client
+
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("No se pudo conectar: %v", err)
+	}
+
+	ClienteMongo = client
+
+	// 👇 Aquí especificas bbdd y colección
+	Usuarios = client.Database("proyecto").Collection("users")
+
+	log.Println("✅ Conexión exitosa con MongoDB Atlas")
+}
+
+func Cerrar() {
+	ClienteMongo.Disconnect(context.Background())
 }

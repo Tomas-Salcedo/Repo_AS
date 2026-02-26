@@ -26,10 +26,9 @@ func main() {
 
 	// 💡 Escuchar en todas las interfaces (dentro del contenedor)
 	server := http.Server{
-		Addr:    "0.0.0.0:8080", // en Docker, no puede ser "localhost"
+		Addr:    ":8080",
 		Handler: mux,
 	}
-
-	log.Println("🚀 Frontend corriendo en http://0.0.0.0:8080")
+	log.Println("🚀 Frontend corriendo en http://localhost:8080")
 	log.Fatal(server.ListenAndServe())
 }
