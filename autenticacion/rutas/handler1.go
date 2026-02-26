@@ -137,7 +137,7 @@ func LoginEnviado(w http.ResponseWriter, r *http.Request) {
 func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
-		http.Redirect(w, r, "http://localhost:8080/index/inicioSesion", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "https://mi-proyecto-front.onrender.com/index/inicioSesion", http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -167,7 +167,7 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Usuario existente autenticado: %s", usuarioDb.Username)
 	}
 
-	http.Redirect(w, r, "http://localhost:8080/index/previoPrincipal?usuario="+usuarioDb.Username, http.StatusSeeOther)
+	http.Redirect(w, r, "https://mi-proyecto-front.onrender.com/index/previoPrincipal?usuario="+usuarioDb.Username, http.StatusSeeOther)
 }
 
 func ObtenerUsuario(w http.ResponseWriter, r *http.Request) {
