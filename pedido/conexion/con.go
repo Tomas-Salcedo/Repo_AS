@@ -13,10 +13,8 @@ import (
 var Db *pgx.Conn
 
 func Conectar() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// DESPUÉS
+	godotenv.Load()
 
 	connStr := os.Getenv("DATABASE_URL")
 	conn, err := pgx.Connect(context.Background(), connStr)
