@@ -16,17 +16,14 @@ var (
 )
 
 func Conectar() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error cargando .env")
-	}
+	godotenv.Load() // 👈 sin verificar error, en Render no existe .env y está bien
 
 	mongoURL := os.Getenv("MONGO_DB_URL")
 	if mongoURL == "" {
 		log.Fatal("MONGO_DB_URL no está configurada")
 	}
 
-	client, err := mongo.Connect(options.Client().ApplyURI(mongoURL)) // v2 no pide context en Connect
+	client, err := mongo.Connect(options.Client().ApplyURI(mongoURL))
 	if err != nil {
 		log.Fatalf("Error conectando: %v", err)
 	}
@@ -37,8 +34,6 @@ func Conectar() {
 	}
 
 	ClienteMongo = client
-
-	// 👇 Aquí especificas bbdd y colección
 	Usuarios = client.Database("proyecto").Collection("users")
 
 	log.Println("✅ Conexión exitosa con MongoDB Atlas")
