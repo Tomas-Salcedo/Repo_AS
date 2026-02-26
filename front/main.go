@@ -12,7 +12,7 @@ import (
 func main() {
 	mux := mux.NewRouter()
 
-	mux.HandleFunc("/index", headers.Inicio)
+	mux.HandleFunc("/", headers.Inicio)
 	mux.HandleFunc("/index/registrar", headers.Registro)
 	mux.HandleFunc("/index/registrarPost", headers.RegistroPost).Methods("POST")
 	mux.HandleFunc("/index/inicioSesion", headers.InicioSesion)
