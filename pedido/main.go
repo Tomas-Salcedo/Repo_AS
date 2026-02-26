@@ -3,30 +3,24 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
-	"pedido/conexion"
+	"pedido/conexion" // 👈 importa conexion
 	"pedido/handler"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	conexion.Conectar()
+	conexion.Conectar() // 👈 conecta una sola vez aquí
 	defer conexion.Cerrarconec()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/registro", handler.Registro).Methods("POST")
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8083" // fallback para localhost
-	}
-
 	server := http.Server{
-		Addr:    ":" + port,
+		Addr:    ":8083", // 👈 así funciona en localhost
 		Handler: r,
 	}
 
-	log.Println("🚀 Servidor corriendo en puerto:", port)
+	log.Println("🚀 Servidor corriendo en http://localhost:8083")
 	log.Fatal(server.ListenAndServe())
 }
